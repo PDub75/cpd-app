@@ -1,0 +1,34 @@
+<%- include('partials/header', { title: 'CPD Self-Assessment' }) %>
+<%- include('partials/sidebar') %>
+
+<main class="content">
+    <div class="wizard-container">
+        <div class="wizard-stepper">
+            <% const stepNames = ['Intro', 'Reflection', 'Select', 'Self-Assess', 'Prioritize', 'Activities', 'Review']; %>
+            <% for(let i = 1; i <= 7; i++) { %>
+                <% if (i <= furthestStep) { %>
+                    <a href="/wizard/<%= i %>" class="step <%= i === currentStep ? 'active' : 'completed' %>">
+                        <span>✓</span> <%= stepNames[i-1] %>
+                    </a>
+                <% } else { %>
+                    <div class="step">
+                        <span><%= i %></span> <%= stepNames[i-1] %>
+                    </div>
+                <% } %>
+            <% } %>
+        </div>
+
+        <div class="wizard-content">
+            <h2>Introduction</h2>
+            <p>The CPD Tool is based on the Law Society's Professional Development Profile. The Profile is intended to provide guidance on the competencies the Law Society believes are important to maintain a safe, effective and sustainable legal practice.</p>
+            <p>This Tool helps you to self-assess your current proficiency levels in various competency areas, and to identify and prioritize those you want to develop or enhance.</p>
+        </div>
+
+        <div class="wizard-nav">
+            <a href="/dashboard" class="btn btn-secondary">Cancel</a>
+            <a href="/wizard/2" class="btn">Start Self-Assessment</a>
+        </div>
+    </div>
+</main>
+
+<%- include('partials/footer') %>

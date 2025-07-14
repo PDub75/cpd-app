@@ -1,0 +1,52 @@
+<%- include('partials/header', { title: 'CPD Self-Assessment' }) %>
+<%- include('partials/sidebar') %>
+
+<main class="content">
+    <div class="wizard-container">
+        <div class="wizard-stepper">
+            <% const stepNames = ['Intro', 'Reflection', 'Select', 'Self-Assess', 'Prioritize', 'Activities', 'Review']; %>
+            <% for(let i = 1; i <= 7; i++) { %>
+                <% if (i <= furthestStep) { %>
+                    <a href="/wizard/<%= i %>" class="step <%= i === currentStep ? 'active' : 'completed' %>">
+                        <span>✓</span> <%= stepNames[i-1] %>
+                    </a>
+                <% } else { %>
+                    <div class="step">
+                        <span><%= i %></span> <%= stepNames[i-1] %>
+                    </div>
+                <% } %>
+            <% } %>
+        </div>
+
+        <div class="wizard-content">
+            <h2>Set your priorities</h2>
+            <p>Arrange your selected competencies in descending order of importance using the arrows below.</p>
+            <div class="priority-list">
+                <% competencies.forEach((comp, index) => { %>
+                    <div class="priority-item">
+                        <div class="priority-number"><%= index + 1 %>.</div>
+                        <div class="priority-details">
+                            <strong><%= comp.name %></strong>
+                            <span>Self-Assessment: <%= comp.rating || 'Not Rated' %></span>
+                        </div>
+                        <div class="priority-controls">
+                            <% if (index > 0) { %>
+                                <a href="/wizard/5/move-up/<%= encodeURIComponent(comp.name) %>" class="arrow-btn" title="Move Up">↑</a>
+                            <% } %>
+                            <% if (index < competencies.length - 1) { %>
+                                <a href="/wizard/5/move-down/<%= encodeURIComponent(comp.name) %>" class="arrow-btn" title="Move Down">↓</a>
+                            <% } %>
+                        </div>
+                    </div>
+                <% }); %>
+            </div>
+        </div>
+
+        <div class="wizard-nav">
+            <a href="/wizard/4" class="btn btn-secondary">Back to Step 4</a>
+            <a href="/wizard/6" class="btn">Next Step</a>
+        </div>
+    </div>
+</main>
+
+<%- include('partials/footer') %>

@@ -1,0 +1,156 @@
+<%- include('partials/header', { title: 'CPD Self-Assessment' }) %>
+<%- include('partials/sidebar') %>
+
+<main class="content">
+    <div class="wizard-container">
+        <div class="wizard-stepper">
+            <% const stepNames = ['Intro', 'Reflection', 'Select', 'Self-Assess', 'Prioritize', 'Activities', 'Review']; %>
+            <% for(let i = 1; i <= 7; i++) { %>
+                <% if (i <= furthestStep) { %>
+                    <a href="/wizard/<%= i %>" class="step <%= i === currentStep ? 'active' : 'completed' %>">
+                        <span>✓</span> <%= stepNames[i-1] %>
+                    </a>
+                <% } else { %>
+                    <div class="step">
+                        <span><%= i %></span> <%= stepNames[i-1] %>
+                    </div>
+                <% } %>
+            <% } %>
+        </div>
+
+        <div id="notification-placeholder"></div>
+
+        <div class="wizard-content">
+            <h2>Set your learning activities</h2>
+            <p>For each competency, add at least one learning activity. Include the hours you expect to complete (in 0.25 hour increments) and specify if the activity qualifies for ethics credits.</p>
+            <hr>
+
+            <% competencies.forEach(comp => { %>
+                <div class="competency-activities">
+                    <h3><%= comp.name %></h3>
+
+                    <ul class="activity-list" id="activity-list-<%= comp.name.replace(/\s+/g, '') %>">
+                        <% if (activities[comp.name] && activities[comp.name].length > 0) { %>
+                            <% activities[comp.name].forEach(act => { %>
+                                <li data-activity-id="<%= act.id %>">
+                                    <span><%- act.activity_description %> (<%- act.hours %> hrs) <%- act.is_ethics ? '<strong>[Ethics]</strong>' : '' %></span>
+                                    <button class="remove-activity-btn" type="button">&times;</button>
+                                </li>
+                            <% }) %>
+                        <% } %>
+                    </ul>
+
+                    <form class="activity-form">
+                        <input type="hidden" name="competency_name" value="<%= comp.name %>">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Learning Activity</label>
+                                <select name="activity_description" required>
+                                    <option value="Attend a seminar or course">Attend a seminar or course</option>
+                                    <option value="Review a written resource">Review a written resource</option>
+                                    <option value="Listen to a podcast">Listen to a podcast</option>
+                                    <option value="Be a mentor or mentee">Be a mentor or mentee</option>
+                                    <option value="Teach a conference, course or seminar">Teach a conference, course or seminar</option>
+                                    <option value="Volunteer">Volunteer</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group form-group-small">
+                                <label for="hours_<%= comp.name.replace(/\s+/g, '') %>">Hours</label>
+                                <input type="number" name="hours" id="hours_<%= comp.name.replace(/\s+/g, '') %>" step="0.25" min="0" required>
+                            </div>
+                            <div class="form-group form-group-check">
+                                <input type="checkbox" name="is_ethics" id="is_ethics_<%= comp.name.replace(/\s+/g, '') %>">
+                                <label for="is_ethics_<%= comp.name.replace(/\s+/g, '') %>">Ethics Activity?</label>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="notes_<%= comp.name.replace(/\s+/g, '') %>">Notes (Private)</label>
+                            <textarea name="notes" id="notes_<%= comp.name.replace(/\s+/g, '') %>" rows="2"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-small">Add Activity</button>
+                    </form>
+                </div>
+            <% }); %>
+        </div>
+
+        <div class="wizard-nav">
+            <a href="/wizard/5" class="btn btn-secondary">Back to Step 5</a>
+            <a href="/wizard/7" class="btn">Next Step: Review</a>
+        </div>
+    </div>
+</main>
+
+<script>
+    // This script block is now complete and self-contained
+    document.querySelector('.wizard-content').addEventListener('submit', function(event) {
+        if (event.target.classList.contains('activity-form')) {
+            event.preventDefault();
+            const form = event.target;
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+            data.is_ethics = form.querySelector('[name="is_ethics"]').checked;
+
+            fetch('/wizard/6/add-activity', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(res => res.json())
+            .then(result => {
+                if (result.success) {
+                    const listId = `activity-list-${data.competency_name.replace(/\s+/g, '')}`;
+                    const list = document.getElementById(listId);
+                    const newLi = document.createElement('li');
+                    newLi.dataset.activityId = result.newActivity.id;
+                    const ethicsTag = result.newActivity.is_ethics ? '<strong>[Ethics]</strong>' : '';
+                    newLi.innerHTML = `<span>${result.newActivity.activity_description} (${result.newActivity.hours} hrs) ${ethicsTag}</span> <button class="remove-activity-btn" type="button">&times;</button>`;
+                    list.appendChild(newLi);
+                    form.reset();
+                    showNotification('✓ Activity Added.');
+                }
+            });
+        }
+    });
+
+    document.querySelector('.wizard-content').addEventListener('click', function(event) {
+        if (event.target.classList.contains('remove-activity-btn')) {
+            const li = event.target.closest('li');
+            const activityId = li.dataset.activityId;
+            if (confirm('Are you sure you want to remove this activity?')) {
+                fetch(`/wizard/6/remove-activity/${activityId}`, { method: 'POST' })
+                .then(res => res.json())
+                .then(result => {
+                    if (result.success) {
+                        li.remove();
+                        showNotification('✓ Activity Removed.');
+                    }
+                });
+            }
+        }
+    });
+
+    function showNotification(message) {
+        const placeholder = document.getElementById('notification-placeholder');
+        if (!placeholder) return;
+        
+        const notification = document.createElement('div');
+        notification.className = 'success-message';
+        notification.textContent = message;
+        
+        placeholder.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.classList.add('hidden');
+            setTimeout(() => {
+                if(notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 500);
+        }, 3000);
+    }
+</script>
+
+<%- include('partials/footer') %>

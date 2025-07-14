@@ -1,0 +1,31 @@
+<%- include('../partials/header', { title: 'View Member Plan' }) %>
+<%- include('../partials/sidebar') %>
+
+<main class="content">
+    <h1>CPD Plan for <%= plan.userName %> (<%= plan.year %>)</h1>
+    <p>
+        <strong>Lawyer ID:</strong> <%= plan.lawyer_id || 'N/A' %> | 
+        <strong>Status:</strong> <span class="status-badge status-<%= plan.status.toLowerCase() %>"><%= plan.status %></span>
+    </p>
+
+    <div class="review-plan">
+        <% competencies.forEach(comp => { %>
+            <div class="review-competency">
+                <h3><%= comp.name %></h3>
+                <ul class="activity-list">
+                    <% if (activities[comp.name] && activities[comp.name].length > 0) { %>
+                        <% activities[comp.name].forEach(act => { %>
+                            <li>
+                                <span><%- act.activity_description %> (<%= act.hours %> hrs) <%- act.is_ethics ? '<strong>[Ethics]</strong>' : '' %></span>
+                            </li>
+                        <% }); %>
+                    <% } else { %>
+                        <li class="no-activities">No activities added for this competency.</li>
+                    <% } %>
+                </ul>
+            </div>
+        <% }); %>
+    </div>
+</main>
+
+<%- include('../partials/footer') %>

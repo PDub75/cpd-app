@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %> - CPD Online App</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <header class="main-header">
+        <div class="logo-text">
+            <a href="/dashboard">CPD Online Tool</a>
+        </div>
+        <div class="logo-image-container">
+            <a href="/dashboard">
+                <img src="/images/logo.png" alt="Law Society of Saskatchewan Logo">
+            </a>
+        </div>
+        <div class="main-nav">
+            <% if (user) { %>
+                <div class="profile-dropdown">
+                    <button class="dropdown-toggle">
+                        <%= user.name %>
+                        <span class="user-role">Lawyer ID: <%= user.lawyer_id || 'N/A' %></span>
+                    </button>
+                    <div class="dropdown-menu">
+                        <a href="/profile">View profile</a>
+                        <a href="https://lss.alinityapp.com/Account/Login?ReturnUrl=%2F" target="_blank">Return to Lawyer Portal</a>
+                        <a href="/logout">Log out</a>
+                    </div>
+                </div>
+            <% } %>
+        </div>
+    </header>
+    <div class="page-container">

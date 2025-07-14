@@ -1,0 +1,57 @@
+<%- include('partials/header', { title: 'CPD Self-Assessment' }) %>
+<%- include('partials/sidebar') %>
+
+<main class="content">
+    <div class="wizard-container">
+        <div class="wizard-stepper">
+            <% const stepNames = ['Intro', 'Reflection', 'Select', 'Self-Assess', 'Prioritize', 'Activities', 'Review']; %>
+            <% for(let i = 1; i <= 7; i++) { %>
+                <% if (i <= furthestStep) { %>
+                    <a href="/wizard/<%= i %>" class="step <%= i === currentStep ? 'active' : 'completed' %>">
+                        <span>✓</span> <%= stepNames[i-1] %>
+                    </a>
+                <% } else { %>
+                    <div class="step">
+                        <span><%= i %></span> <%= stepNames[i-1] %>
+                    </div>
+                <% } %>
+            <% } %>
+        </div>
+
+        <div class="wizard-content">
+            <h2>Review your CPD plan and submit</h2>
+            <p>Please review your selected competencies and learning activities for the year. This is the information the Law Society will be able to view. Your proficiency ratings and private notes will not be visible.</p>
+            <hr>
+            <div class="review-plan">
+                <% competencies.forEach(comp => { %>
+                    <div class="review-competency">
+                        <h3><%= comp.name %></h3>
+                        <ul class="activity-list">
+                            <% if (activities[comp.name] && activities[comp.name].length > 0) { %>
+                                <% activities[comp.name].forEach(act => { %>
+                                    <li>
+                                        <span><%- act.activity_description %> (<%= act.hours %> hrs) <%- act.is_ethics ? '<strong>[Ethics]</strong>' : '' %></span>
+                                    </li>
+                                <% }); %>
+                            <% } else { %>
+                                <li class="no-activities">No activities added for this competency.</li>
+                            <% } %>
+                        </ul>
+                    </div>
+                <% }); %>
+            </div>
+            <div class="review-summary">
+                <h4>Total Planned CPD Hours: <%= totals.cpd.toFixed(2) %></h4>
+                <h4>Total Planned Ethics Hours: <%= totals.ethics.toFixed(2) %></h4>
+            </div>
+             <form action="/wizard/submit" method="POST" onsubmit="return confirm('Are you sure you are ready to submit your plan?');">
+                <div class="wizard-nav">
+                    <a href="/wizard/6" class="btn btn-secondary">Back to Step 6</a>
+                    <button type="submit" class="btn">Acknowledge and Submit My CPD Plan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</main>
+
+<%- include('partials/footer') %>

@@ -1,0 +1,109 @@
+<%- include('partials/header', { title: 'Track Your Progress' }) %>
+<%- include('partials/sidebar') %>
+
+<main class="content">
+    <div class="wizard-container">
+        <div id="notification-placeholder"></div>
+        <div class="wizard-content">
+            <h2>Track Your Progress</h2>
+            <p>Your plan for <%= plan.year %> has been submitted. You can track your progress on your learning activities here.</p>
+            
+            <div class="page-action-area">
+                <a href="/wizard/continue" class="btn btn-secondary">Edit Your Plan</a>
+            </div>
+            <hr>
+
+            <% competencies.forEach(comp => { %>
+                <div class="competency-activities">
+                    <h3><%= comp.name %></h3>
+                    <ul class="activity-list">
+                        <% if (activities[comp.name] && activities[comp.name].length > 0) { %>
+                            <% activities[comp.name].forEach(act => { %>
+                                <li data-activity-id="<%= act.id %>" class="activity-item <%= act.status.toLowerCase().replace(' ', '-') %>">
+                                    <div class="activity-details">
+                                        <span class="activity-description"><%- act.activity_description %> (<%= act.hours %> hrs) <%- act.is_ethics ? '<strong>[Ethics]</strong>' : '' %></span>
+                                        <span class="activity-notes"><%= act.notes %></span>
+                                    </div>
+                                    <div class="activity-status">
+                                        <% if (act.status === 'Complete') { %>
+                                            <button class="btn btn-small btn-undo mark-incomplete-btn" type="button">✓ Complete (Undo)</button>
+                                        <% } else { %>
+                                            <button class="btn btn-small mark-complete-btn" type="button">Mark as Complete</button>
+                                        <% } %>
+                                    </div>
+                                </li>
+                            <% }) %>
+                        <% } else { %>
+                            <li class="no-activities">No activities planned for this competency.</li>
+                        <% } %>
+                    </ul>
+                </div>
+            <% }); %>
+        </div>
+    </div>
+</main>
+
+<script>
+    // This script now handles both 'complete' and 'incomplete' actions
+    document.querySelector('.wizard-content').addEventListener('click', function(event) {
+        const completeButton = event.target.closest('.mark-complete-btn');
+        const incompleteButton = event.target.closest('.mark-incomplete-btn');
+
+        if (completeButton) {
+            handleStatusUpdate(completeButton, 'complete');
+        }
+        if (incompleteButton) {
+            handleStatusUpdate(incompleteButton, 'incomplete');
+        }
+    });
+
+    function handleStatusUpdate(button, action) {
+        const listItem = button.closest('.activity-item');
+        const activityId = listItem.dataset.activityId;
+        const url = (action === 'complete') ? `/activities/${activityId}/complete` : `/activities/${activityId}/uncomplete`;
+        const confirmationMessage = (action === 'complete') 
+            ? 'Are you sure you want to mark this activity as complete?'
+            : 'Are you sure you want to revert this activity to "Not Started"?';
+
+        if (confirm(confirmationMessage)) {
+            fetch(url, { method: 'POST' })
+            .then(res => res.json())
+            .then(result => {
+                if (result.success) {
+                    updateActivityUI(listItem, action);
+                    showNotification(`✓ Activity status updated.`);
+                } else {
+                    alert('Could not update activity. Please try again.');
+                }
+            });
+        }
+    }
+
+    function updateActivityUI(listItem, newStatus) {
+        const statusDiv = listItem.querySelector('.activity-status');
+        if (newStatus === 'complete') {
+            listItem.classList.remove('not-started');
+            listItem.classList.add('complete');
+            statusDiv.innerHTML = `<button class="btn btn-small btn-undo mark-incomplete-btn" type="button">✓ Complete (Undo)</button>`;
+        } else {
+            listItem.classList.remove('complete');
+            listItem.classList.add('not-started');
+            statusDiv.innerHTML = `<button class="btn btn-small mark-complete-btn" type="button">Mark as Complete</button>`;
+        }
+    }
+
+    function showNotification(message) {
+        const placeholder = document.getElementById('notification-placeholder');
+        if (!placeholder) return;
+        const notification = document.createElement('div');
+        notification.className = 'success-message';
+        notification.textContent = message;
+        placeholder.appendChild(notification);
+        setTimeout(() => {
+            notification.classList.add('hidden');
+            setTimeout(() => { if(notification.parentNode) { notification.parentNode.removeChild(notification); }}, 500);
+        }, 3000);
+    }
+</script>
+
+<%- include('partials/footer') %>

@@ -1,0 +1,47 @@
+<%- include('../partials/header', { title: 'Manage Competencies' }) %>
+<%- include('../partials/sidebar') %>
+
+<main class="content">
+    <h1>Manage Competencies</h1>
+    <p>Use this page to add, edit, or remove competency domains and the specific competencies within them.</p>
+
+    <div class="admin-section">
+        <h2>Add New Domain</h2>
+        <form action="/admin/domains/add" method="POST" class="filter-form">
+            <div class="form-group">
+                <label for="domainName">New Domain Name</label>
+                <input type="text" id="domainName" name="domain_name" required>
+            </div>
+            <div class="filter-actions">
+                <button type="submit" class="btn btn-small">Add Domain</button>
+            </div>
+        </form>
+    </div>
+
+    <% domains.forEach(domain => { %>
+        <div class="competency-activities">
+            <h3><%= domain.name %></h3>
+            <ul class="activity-list">
+                <% domain.competencies.forEach(comp => { %>
+                    <li>
+                        <span><%= comp.name %></span>
+                        <form action="/admin/competencies/delete/<%= comp.id %>" method="POST" onsubmit="return confirm('Are you sure you want to delete this competency?');">
+                            <button type="submit" class="remove-activity-btn" title="Delete Competency">&times;</button>
+                        </form>
+                    </li>
+                <% }); %>
+            </ul>
+            <hr>
+            <form action="/admin/competencies/add" method="POST" class="activity-form">
+                <input type="hidden" name="domain_id" value="<%= domain.id %>">
+                <div class="form-group">
+                    <label>New Competency Name for this Domain</label>
+                    <input type="text" name="competency_name" required>
+                </div>
+                <button type="submit" class="btn btn-small btn-secondary">Add Competency</button>
+            </form>
+        </div>
+    <% }); %>
+</main>
+
+<%- include('../partials/footer') %>

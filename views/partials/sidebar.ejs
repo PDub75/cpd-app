@@ -1,0 +1,31 @@
+<aside class="sidebar">
+    <a href="/dashboard" class="sidebar-link <%= (title === 'Dashboard') ? 'active' : '' %>">Dashboard</a>
+    
+    <% if (user && user.role === 'Administrator') { %>
+        <hr>
+        <span class="sidebar-heading">Admin Menu</span>
+        <a href="/admin/dashboard" class="sidebar-link <%= (title.includes('Admin Dashboard')) ? 'active' : '' %>">Dashboard</a>
+        <a href="/admin/competencies" class="sidebar-link <%= (title.includes('Manage Competencies')) ? 'active' : '' %>">Manage Competencies</a>
+        <a href="#" class="sidebar-link">Reporting</a>
+    <% } %>
+
+    <hr>
+    <span class="sidebar-heading">CPD Plan</span>
+    <% if (plan) { %>
+        <% if (plan.status === 'Draft') { %>
+            <a href="/wizard/continue" class="sidebar-link <%= (title.includes('Self-Assessment')) ? 'active' : '' %>">View/Edit Plan</a>
+        <% } %>
+        <a href="/track-progress" class="sidebar-link <%= (title === 'Track Your Progress') ? 'active' : '' %>">Track Progress</a>
+    <% } else { %>
+         <a href="/wizard/1" class="sidebar-link <%= (title.includes('Self-Assessment')) ? 'active' : '' %>">Create Plan</a>
+    <% } %>
+
+    <hr>
+    <span class="sidebar-heading">Resources</span>
+    <a href="/overview" class="sidebar-link <%= (title === 'Overview') ? 'active' : '' %>">Overview</a>
+    <a href="/glossary" class="sidebar-link <%= (title === 'Glossary') ? 'active' : '' %>">Glossary</a>
+    <a href="/contact" class="sidebar-link <%= (title === 'Contact Us') ? 'active' : '' %>">Contact Us</a>
+    <a href="/faq" class="sidebar-link <%= (title === 'FAQs') ? 'active' : '' %>">FAQs</a>
+    <a href="/accessibility" class="sidebar-link <%= (title === 'Accessibility') ? 'active' : '' %>">Accessibility</a>
+    <a href="/privacy" class="sidebar-link <%= (title === 'Privacy') ? 'active' : '' %>">Privacy</a>
+</aside>

@@ -1,0 +1,67 @@
+<%- include('../partials/header', { title: 'Admin Dashboard' }) %>
+<%- include('../partials/sidebar') %>
+
+<main class="content">
+    <h1>Admin Dashboard: All Member Plans</h1>
+    <p>This table displays all CPD plans currently in the system. Use the filters below to refine the list.</p>
+
+    <div class="filter-container">
+        <form action="/admin/dashboard" method="GET" class="filter-form">
+            <div class="form-group">
+                <label for="memberName">Member Name</label>
+                <input type="text" id="memberName" name="name" value="<%= filters.name %>">
+            </div>
+            <div class="form-group">
+                <label for="planYear">Plan Year</label>
+                <input type="number" id="planYear" name="year" value="<%= filters.year %>">
+            </div>
+            <div class="form-group">
+                <label for="planStatus">Status</label>
+                <select id="planStatus" name="status">
+                    <option value="">All</option>
+                    <option value="Draft" <%= filters.status === 'Draft' ? 'selected' : '' %>>Draft</option>
+                    <option value="Submitted" <%= filters.status === 'Submitted' ? 'selected' : '' %>>Submitted</option>
+                </select>
+            </div>
+            <div class="filter-actions">
+                <button type="submit" class="btn btn-small">Filter</button>
+                <a href="/admin/dashboard" class="btn btn-small btn-secondary">Clear</a>
+            </div>
+        </form>
+    </div>
+
+    <div class="admin-table-container">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Member Name</th>
+                    <th>Lawyer ID</th>
+                    <th>Plan Year</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% if (plans && plans.length > 0) { %>
+                    <% plans.forEach(plan => { %>
+                        <tr>
+                            <td><%= plan.userName %></td>
+                            <td><%= plan.lawyer_id || 'N/A' %></td>
+                            <td><%= plan.year %></td>
+                            <td><span class="status-badge status-<%= plan.status.toLowerCase() %>"><%= plan.status %></span></td>
+                            <td>
+                                <a href="/admin/plan/<%= plan.id %>" class="btn btn-small btn-secondary">View</a>
+                            </td>
+                        </tr>
+                    <% }) %>
+                <% } else { %>
+                    <tr>
+                        <td colspan="5">No plans match the current filters.</td>
+                    </tr>
+                <% } %>
+            </tbody>
+        </table>
+    </div>
+</main>
+
+<%- include('../partials/footer') %>

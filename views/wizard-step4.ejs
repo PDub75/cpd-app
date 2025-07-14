@@ -1,0 +1,97 @@
+<%- include('partials/header', { title: 'CPD Self-Assessment' }) %>
+<%- include('partials/sidebar') %>
+
+<main class="content">
+    <div class="wizard-container">
+        <div class="wizard-stepper">
+            <% const stepNames = ['Intro', 'Reflection', 'Select', 'Self-Assess', 'Prioritize', 'Activities', 'Review']; %>
+            <% for(let i = 1; i <= 7; i++) { %>
+                <% if (i <= furthestStep) { %>
+                    <a href="/wizard/<%= i %>" class="step <%= i === currentStep ? 'active' : 'completed' %>">
+                        <span>✓</span> <%= stepNames[i-1] %>
+                    </a>
+                <% } else { %>
+                    <div class="step">
+                        <span><%= i %></span> <%= stepNames[i-1] %>
+                    </div>
+                <% } %>
+            <% } %>
+        </div>
+
+        <div id="notification-placeholder"></div>
+
+        <div class="wizard-content">
+            <h2>Self-assess your proficiency in your selected competencies</h2>
+            <p>Use the rating scale below to assess your current level of proficiency. These selections will not be seen by the Law Society. You must select a rating for each competency to continue.</p>
+            <hr>
+            <% competencies.forEach(comp => { %>
+                <div class="competency-assessment">
+                    <h3><%= comp.name %></h3>
+                    <div class="rating-scale" data-competency-name="<%= comp.name %>">
+                        <button type="button" class="rating-btn <%= comp.rating === 'Pre-discovery' ? 'selected' : '' %>" data-rating="Pre-discovery">
+                            <strong>Pre-discovery</strong>
+                            <span>Lacks awareness of the competency or its relevance.</span>
+                        </button>
+                        <button type="button" class="rating-btn <%= comp.rating === 'Discover' ? 'selected' : '' %>" data-rating="Discover">
+                            <strong>Discover</strong>
+                            <span>Expresses curiosity about, develops awareness of the competency.</span>
+                        </button>
+                        <button type="button" class="rating-btn <%= comp.rating === 'Attempt' ? 'selected' : '' %>" data-rating="Attempt">
+                            <strong>Attempt</strong>
+                            <span>Tests out the competency, learns through mistakes.</span>
+                        </button>
+                        <button type="button" class="rating-btn <%= comp.rating === 'Do' ? 'selected' : '' %>" data-rating="Do">
+                            <strong>Do</strong>
+                            <span>Demonstrates the competency with effort and attention.</span>
+                        </button>
+                        <button type="button" class="rating-btn <%= comp.rating === 'Excel' ? 'selected' : '' %>" data-rating="Excel">
+                            <strong>Excel</strong>
+                            <span>Demonstrates the competency proficiently and effortlessly.</span>
+                        </button>
+                        <button type="button" class="rating-btn <%= comp.rating === 'Lead' ? 'selected' : '' %>" data-rating="Lead">
+                            <strong>Lead</strong>
+                            <span>Models this competency for others or uses it to transform practice.</span>
+                        </button>
+                    </div>
+                </div>
+            <% }); %>
+        </div>
+
+        <div class="wizard-nav">
+            <a href="/wizard/3" class="btn btn-secondary">Back to Step 3</a>
+            <a href="/wizard/5" class="btn">Next Step</a>
+        </div>
+    </div>
+</main>
+
+<script>
+    document.querySelector('.wizard-content').addEventListener('click', function(event) {
+        const ratingButton = event.target.closest('.rating-btn');
+        if (!ratingButton) return;
+        const competencyName = ratingButton.closest('.rating-scale').dataset.competencyName;
+        const rating = ratingButton.dataset.rating;
+        const allButtonsInGroup = ratingButton.parentElement.querySelectorAll('.rating-btn');
+        allButtonsInGroup.forEach(btn => btn.classList.remove('selected'));
+        ratingButton.classList.add('selected');
+        fetch('/wizard/4', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ competencyName, rating })
+        }).then(res => res.json()).then(data => {
+            if (data.success) { showNotification('✓ Your progress has been saved.'); }
+        }).catch(error => console.error('Error:', error));
+    });
+    function showNotification(message) {
+        const placeholder = document.getElementById('notification-placeholder');
+        const notification = document.createElement('div');
+        notification.className = 'success-message';
+        notification.textContent = message;
+        placeholder.appendChild(notification);
+        setTimeout(() => {
+            notification.classList.add('hidden');
+            setTimeout(() => { notification.remove(); }, 500);
+        }, 3000);
+    }
+</script>
+
+<%- include('partials/footer') %>

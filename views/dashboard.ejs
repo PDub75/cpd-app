@@ -1,0 +1,63 @@
+<%- include('partials/header', { title: 'Dashboard' }) %>
+<%- include('partials/sidebar') %>
+
+<main class="content">
+    <% if (plan) { %>
+        <h1>Member Dashboard</h1>
+        <div class="progress-container">
+            <div class="progress-item">
+                <label>CPD Hours Completed: <%= totals.cpd.toFixed(2) %> / 12.00</label>
+                <progress value="<%= totals.cpd %>" max="12"></progress>
+            </div>
+            <div class="progress-item">
+                <label>Ethics Hours Completed: <%= totals.ethics.toFixed(2) %> / 2.00</label>
+                <progress value="<%= totals.ethics %>" max="2"></progress>
+            </div>
+        </div>
+        <div class="user-info">
+            <h3>My Learning Plan for <%= plan.year %></h3>
+            <% if (plan.status === 'Draft') { %>
+                <p>You have a draft plan in progress.</p>
+                <div class="dashboard-actions">
+                    <a href="/wizard/continue" class="btn">Continue/View Plan</a>
+                    <form action="/plan/reset" method="POST" onsubmit="return confirm('Are you sure? This will permanently delete your draft plan.');">
+                        <button type="submit" class="btn btn-danger">Reset Plan</button>
+                    </form>
+                </div>
+            <% } else { %>
+                <p>Your plan has been submitted. You can track your progress or view your submitted activities.</p>
+                 <div class="dashboard-actions">
+                    <a href="/track-progress" class="btn">Track Progress</a>
+                </div>
+            <% } %>
+        </div>
+    <% } else { %>
+        <h1>Hi <%= user.name.split(' ')[0] %>,</h1>
+        <div class="welcome-card-container">
+            <div class="welcome-card large-card">
+                <div class="welcome-card-text">
+                    <h2>Start Your Annual CPD Self-Assessment</h2>
+                    <p>Your CPD Plan is due on Oct. 1. You can start your self-assessment here to start thinking about your goals for the upcoming year.</p>
+                    <a href="/wizard/1" class="btn">Continue</a>
+                </div>
+            </div>
+        </div>
+        <h2>Don't Know Where to Start?</h2>
+        <div class="resource-cards">
+            <div class="card">
+                <h3>Reflective Practice Resources</h3>
+                <a href="#" class="btn btn-secondary">LAUNCH COURSE</a>
+            </div>
+            <div class="card">
+                <h3>View Sample CPD Plan</h3>
+                <a href="#" class="btn btn-secondary">VIEW SAMPLE</a>
+            </div>
+            <div class="card">
+                <h3>Read More on the Website</h3>
+                <a href="/overview" class="btn btn-secondary">VISIT WEBSITE</a>
+            </div>
+        </div>
+    <% } %>
+</main>
+
+<%- include('partials/footer') %>

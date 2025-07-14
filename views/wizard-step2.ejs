@@ -1,0 +1,40 @@
+<%- include('partials/header', { title: 'CPD Self-Assessment' }) %>
+<%- include('partials/sidebar') %>
+
+<main class="content">
+    <div class="wizard-container">
+        <div class="wizard-stepper">
+            <% const stepNames = ['Intro', 'Reflection', 'Select', 'Self-Assess', 'Prioritize', 'Activities', 'Review']; %>
+            <% for(let i = 1; i <= 7; i++) { %>
+                <% if (i <= furthestStep) { %>
+                    <a href="/wizard/<%= i %>" class="step <%= i === currentStep ? 'active' : 'completed' %>">
+                        <span>✓</span> <%= stepNames[i-1] %>
+                    </a>
+                <% } else { %>
+                    <div class="step">
+                        <span><%= i %></span> <%= stepNames[i-1] %>
+                    </div>
+                <% } %>
+            <% } %>
+        </div>
+
+        <div class="wizard-content">
+            <h2>Guided Reflection</h2>
+            <p>Before you begin your self-assessment, it might be helpful to reflect on the questions below to help you identify your current learning goals and priorities.</p>
+            <hr style="margin: 20px 0;">
+            <h4>What are your current learning needs?</h4>
+            <p>Based on your current practice profile, do you have some learning needs in mind?</p>
+            <h4>What are your career goals?</h4>
+            <p>For example, do you want to make partner at your firm? Advance into management at your organization? Move into a new practice area or setting?</p>
+            <h4>Are there any domains you know you need to improve on?</h4>
+            <p>For example, have you received any feedback or had an experience that indicates a need for more development in a particular area?</p>
+        </div>
+
+        <div class="wizard-nav">
+            <a href="/wizard/1" class="btn btn-secondary">Back to Step 1</a>
+            <a href="/wizard/3" class="btn">Next Step</a>
+        </div>
+    </div>
+</main>
+
+<%- include('partials/footer') %>

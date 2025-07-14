@@ -1,0 +1,24 @@
+<%- include('partials/header', { title: 'My Profile' }) %>
+<%- include('partials/sidebar') %>
+
+<main class="content">
+    <h1>Profile</h1>
+    <p>This is your personal information as it appears in our records.</p>
+    
+    <div class="profile-card">
+        <h2><%= user.name %></h2>
+        <p class="profile-subheading">Lawyer ID: <%= user.lawyer_id || 'Not Assigned' %></p>
+        <div class="profile-grid">
+            <div><label>First Name</label><p><%= user.name.split(' ')[0] %></p></div>
+            <div><label>Last Name</label><p><%= user.name.split(' ').slice(1).join(' ') %></p></div>
+            <div><label>Name of Organization</label><p>Law Society of Saskatchewan</p></div>
+            <div><label>Preferred Email Address</label><p><%= user.email %></p></div>
+            <div><label>Location</label><p>Regina</p></div>
+            <div><label>Year of Call</label><p>2019</p></div>
+        </div>
+        <hr>
+        <p class="profile-footer">If any of the above information is incorrect, you will need to close this CPD tool and edit your personal information in the Lawyer Portal.</p>
+    </div>
+</main>
+
+<%- include('partials/footer') %>

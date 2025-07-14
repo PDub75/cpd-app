@@ -1,0 +1,75 @@
+<%- include('partials/header', { title: 'CPD Self-Assessment' }) %>
+<%- include('partials/sidebar') %>
+
+<main class="content">
+    <div class="wizard-container">
+        <div class="wizard-stepper">
+            <% const stepNames = ['Intro', 'Reflection', 'Select', 'Self-Assess', 'Prioritize', 'Activities', 'Review']; %>
+            <% for(let i = 1; i <= 7; i++) { %>
+                <% if (i <= furthestStep) { %>
+                    <a href="/wizard/<%= i %>" class="step <%= i === currentStep ? 'active' : 'completed' %>">
+                        <span>✓</span> <%= stepNames[i-1] %>
+                    </a>
+                <% } else { %>
+                    <div class="step">
+                        <span><%= i %></span> <%= stepNames[i-1] %>
+                    </div>
+                <% } %>
+            <% } %>
+        </div>
+
+        <% if (saved) { %>
+            <div class="success-message">
+                ✓ Your progress has been saved.
+            </div>
+        <% } %>
+
+        <div class="wizard-content">
+            <h2>Select/enter all competencies you are interested in developing or enhancing</h2>
+            <p>Based on your reflections in the last step, select at least two competencies from the Profile you are interested in developing or enhancing.</p>
+            <% if (selectedCompetencies && selectedCompetencies.length > 0) { %>
+                <h4>Your Selections:</h4>
+                <div class="competency-selection-container">
+                    <% selectedCompetencies.forEach(comp => { %>
+                        <div class="selected-competency">
+                            <%= comp.name %>
+                            <a href="/wizard/3/remove/<%= encodeURIComponent(comp.name) %>" class="remove-btn">&times;</a>
+                        </div>
+                    <% }) %>
+                </div>
+                <hr>
+            <% } %>
+            <% competencies.forEach(domain => { %>
+                <h4><%= domain.domain %></h4>
+                <div class="competency-selection-container">
+                    <% domain.competencies.forEach(competencyName => { %>
+                        <a href="/wizard/3/select/<%= encodeURIComponent(competencyName) %>" class="competency-tag"><%= competencyName %></a>
+                    <% }); %>
+                </div>
+            <% }); %>
+            <hr style="margin: 30px 0;">
+            <h4>Other Competencies</h4>
+            <p>Use this feature to add any other competencies you want to include in your plan.</p>
+            <form action="/wizard/3/add-custom" method="POST" class="custom-competency-form">
+                <input type="text" name="custom_competency" placeholder="Competency Name" required>
+                <button type="submit" class="btn">Add Competency</button>
+            </form>
+        </div>
+
+        <div class="wizard-nav">
+            <a href="/wizard/2" class="btn btn-secondary">Back to Step 2</a>
+            <a href="/wizard/4" class="btn">Next Step</a>
+        </div>
+    </div>
+</main>
+
+<script>
+    const successMessage = document.querySelector('.success-message');
+    if (successMessage) {
+        setTimeout(() => {
+            successMessage.classList.add('hidden');
+        }, 3000);
+    }
+</script>
+
+<%- include('partials/footer') %>
