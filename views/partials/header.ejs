@@ -19,13 +19,17 @@
         <div class="main-nav">
             <% if (user) { %>
                 <div class="profile-dropdown">
-                    <button class="dropdown-toggle">
-                        <%= user.name %>
-                        <span class="user-role">Lawyer ID: <%= user.lawyer_id || 'N/A' %></span>
+                    <button type="button" class="dropdown-toggle" id="dropdown-button">
+                        <div class="user-avatar"><%= user.name.charAt(0) %></div>
+                        <div class="user-details">
+                            <span class="user-name"><%= user.name %></span>
+                            <span class="user-role">Lawyer ID: <%= user.lawyer_id || 'N/A' %></span>
+                        </div>
                     </button>
-                    <div class="dropdown-menu">
+                    <div class="dropdown-menu" id="dropdown-menu">
                         <a href="/profile">View profile</a>
                         <a href="https://lss.alinityapp.com/Account/Login?ReturnUrl=%2F" target="_blank">Return to Lawyer Portal</a>
+                        <div class="dropdown-divider"></div>
                         <a href="/logout">Log out</a>
                     </div>
                 </div>

@@ -38,6 +38,9 @@
                     <th>Lawyer ID</th>
                     <th>Plan Year</th>
                     <th>Status</th>
+                    <th>CPD Hours</th>
+                    <th>Ethics Hours</th>
+                    <th>Complete</th>
                     <th>Actions</th>
                 </tr>
             </thead>
@@ -49,6 +52,15 @@
                             <td><%= plan.lawyer_id || 'N/A' %></td>
                             <td><%= plan.year %></td>
                             <td><span class="status-badge status-<%= plan.status.toLowerCase() %>"><%= plan.status %></span></td>
+                            <td><%= (plan.completed_cpd || 0).toFixed(2) %></td>
+                            <td><%= (plan.completed_ethics || 0).toFixed(2) %></td>
+                            <td>
+                                <% if (plan.isComplete) { %>
+                                    <span class="status-badge status-submitted">Yes</span>
+                                <% } else { %>
+                                    <span class="status-badge status-draft">No</span>
+                                <% } %>
+                            </td>
                             <td>
                                 <a href="/admin/plan/<%= plan.id %>" class="btn btn-small btn-secondary">View</a>
                             </td>
@@ -56,7 +68,7 @@
                     <% }) %>
                 <% } else { %>
                     <tr>
-                        <td colspan="5">No plans match the current filters.</td>
+                        <td colspan="8">No plans match the current filters.</td>
                     </tr>
                 <% } %>
             </tbody>

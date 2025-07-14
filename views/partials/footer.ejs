@@ -1,2 +1,20 @@
-</div> </body>
+</div> <script>
+        // Script for Profile Dropdown
+        const dropdownButton = document.getElementById('dropdown-button');
+        const dropdownMenu = document.getElementById('dropdown-menu');
+
+        if (dropdownButton && dropdownMenu) {
+            dropdownButton.addEventListener('click', () => {
+                dropdownMenu.classList.toggle('show');
+            });
+
+            // Close the dropdown if clicking outside of it
+            window.addEventListener('click', function(e) {
+                if (!dropdownButton.contains(e.target)) {
+                    dropdownMenu.classList.remove('show');
+                }
+            });
+        }
+    </script>
+</body>
 </html>

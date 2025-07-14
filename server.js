@@ -8,7 +8,7 @@ const session = require('express-session');
 const app = express();
 const PORT = 3000;
 
-// Middleware
+// --- MIDDLEWARE ---
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 app.use(express.json());
@@ -151,7 +151,6 @@ app.get('/dashboard', (req, res) => {
          res.render('dashboard', { title: 'Dashboard', totals });
     }
 });
-
 app.post('/plan/reset', (req, res) => {
     const findPlanSql = `SELECT id FROM plans WHERE user_id = ? AND year = ?`;
     db.get(findPlanSql, [req.session.user.id, new Date().getFullYear()], (err, plan) => {
@@ -168,7 +167,6 @@ app.post('/plan/reset', (req, res) => {
         });
     });
 });
-
 app.get('/profile', (req, res) => { res.render('profile', { title: 'My Profile' }); });
 app.get('/overview', (req, res) => { res.render('overview', { title: 'Overview' }); });
 app.get('/glossary', (req, res) => { res.render('glossary', { title: 'Glossary' }); });
@@ -208,16 +206,26 @@ app.post('/activities/:id/uncomplete', (req, res) => {
 // --- ADMIN ROUTES ---
 app.get('/admin/dashboard', checkAdmin, (req, res) => {
     const filters = { name: req.query.name || '', year: req.query.year || '', status: req.query.status || '' };
-    let sql = `SELECT plans.id, plans.year, plans.status, users.name as userName, users.lawyer_id FROM plans JOIN users ON plans.user_id = users.id`;
+    let sql = `
+        SELECT p.id, p.year, p.status, u.name as userName, u.lawyer_id,
+        SUM(CASE WHEN a.status = 'Complete' THEN a.hours ELSE 0 END) as completed_cpd,
+        SUM(CASE WHEN a.status = 'Complete' AND a.is_ethics = 1 THEN a.hours ELSE 0 END) as completed_ethics
+        FROM plans p
+        JOIN users u ON p.user_id = u.id
+        LEFT JOIN activities a ON p.id = a.plan_id
+    `;
     const params = [];
     const conditions = [];
-    if (filters.name) { conditions.push("users.name LIKE ?"); params.push(`%${filters.name}%`); }
-    if (filters.year) { conditions.push("plans.year = ?"); params.push(filters.year); }
-    if (filters.status) { conditions.push("plans.status = ?"); params.push(filters.status); }
+    if (filters.name) { conditions.push("u.name LIKE ?"); params.push(`%${filters.name}%`); }
+    if (filters.year) { conditions.push("p.year = ?"); params.push(filters.year); }
+    if (filters.status) { conditions.push("p.status = ?"); params.push(filters.status); }
     if (conditions.length > 0) { sql += " WHERE " + conditions.join(" AND "); }
-    sql += " ORDER BY plans.year DESC, users.name ASC";
+    sql += " GROUP BY p.id, p.year, p.status, u.name, u.lawyer_id ORDER BY p.year DESC, u.name ASC";
     db.all(sql, params, (err, plans) => {
         if (err) { return res.status(500).send("Could not retrieve plans."); }
+        plans.forEach(plan => {
+            plan.isComplete = (plan.completed_cpd >= 12 && plan.completed_ethics >= 2);
+        });
         res.render('admin/dashboard', { title: 'Admin Dashboard', plans, filters });
     });
 });
