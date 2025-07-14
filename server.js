@@ -4,11 +4,12 @@ const express = require('express');
 const db = require('./database.js');
 const bcrypt = require('bcrypt');
 const session = require('express-session');
+const { Parser } = require('json2csv'); // For CSV export
 
 const app = express();
 const PORT = 3000;
 
-// --- MIDDLEWARE ---
+// Middleware
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 app.use(express.json());
@@ -308,6 +309,27 @@ app.post('/admin/activities/delete/:id', checkAdmin, (req, res) => {
     db.run(`DELETE FROM learning_activities WHERE id = ?`, [req.params.id], (err) => {
         if (err) console.error(err.message);
         res.redirect('/admin/activities');
+    });
+});
+app.get('/admin/export/csv', checkAdmin, (req, res) => {
+    const sql = `
+        SELECT u.name as member_name, u.lawyer_id, p.year as plan_year, p.status as plan_status,
+               ac.competency_name, ac.activity_description, ac.hours as planned_hours, 
+               CASE WHEN ac.is_ethics = 1 THEN 'Yes' ELSE 'No' END as is_ethics,
+               ac.status as activity_status, ac.completion_date
+        FROM plans p
+        JOIN users u ON p.user_id = u.id
+        LEFT JOIN activities ac ON p.id = ac.plan_id
+        ORDER BY u.name, p.year, ac.id
+    `;
+    db.all(sql, [], (err, data) => {
+        if (err) { return res.status(500).send("Could not export data."); }
+        const fields = ['member_name', 'lawyer_id', 'plan_year', 'plan_status', 'competency_name', 'activity_description', 'planned_hours', 'is_ethics', 'activity_status', 'completion_date'];
+        const json2csvParser = new Parser({ fields });
+        const csv = json2csvParser.parse(data);
+        res.header('Content-Type', 'text/csv');
+        res.attachment(`cpd-export-${Date.now()}.csv`);
+        res.send(csv);
     });
 });
 
