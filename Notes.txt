@@ -1,0 +1,27 @@
+Your Application's Tech Stack
+We've built a full-stack web application using a popular and modern set of tools primarily based on JavaScript.
+
+Backend (Server-Side)
+Node.js: The JavaScript runtime environment that executes our server code.
+
+Express.js: The web framework we used to build the server, manage routes (URLs), and handle requests from the browser.
+
+bcrypt: The library used for securely hashing and verifying user passwords.
+
+express-session: The middleware that manages user login sessions, allowing the app to remember who is logged in.
+
+multer & csv-parser: Libraries used together to handle the CSV file upload and read the user data from it for our "Import Users" feature.
+
+json2csv: The library used to convert your database records into a downloadable CSV file for the "Export to CSV" feature.
+
+@faker-js/faker: A library we used only in our seed-all.js script to generate realistic-looking test data.
+
+Frontend (Client-Side)
+HTML5 & EJS (Embedded JavaScript): We used EJS as our template engine to dynamically generate the HTML structure of our pages and insert data from the server.
+
+CSS3: We used CSS to style the entire application, from the layout and colors to the responsive design that adapts to mobile devices using media queries.
+
+JavaScript (Fetch API): We used modern client-side JavaScript to make parts of the application interactive without reloading the page, such as saving proficiency ratings and adding/removing learning activities.
+
+Database
+SQLite: A lightweight, serverless, file-based database. All of your application's data (users, plans, activities, etc.) is stored in the cpd.db file in your project folder.
