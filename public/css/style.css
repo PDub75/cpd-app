@@ -739,3 +739,22 @@ a:hover { text-decoration: underline; }
 .admin-table thead th a:hover {
     color: #00447c;
 }
+/* --- Step 6 Radio Button Styles --- */
+.form-group-radio label {
+    margin-bottom: 10px;
+}
+.radio-options {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+}
+.radio-options label {
+    font-weight: normal;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 0;
+}
+.radio-options input[type="radio"] {
+    width: auto;
+}

@@ -15,7 +15,6 @@ const PORT = 3000;
 const upload = multer({ dest: 'uploads/' });
 
 // --- MIDDLEWARE ---
-
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 app.use(express.json());
@@ -107,8 +106,8 @@ app.post('/register', async (req, res) => {
   const lawyer_id = Math.floor(10000 + Math.random() * 90000).toString();
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
-    const sql = 'INSERT INTO users (name, email, password, lawyer_id, role) VALUES (?, ?, ?, ?, ?)';
-    db.run(sql, [name, email, hashedPassword, lawyer_id, 'Member'], (err) => {
+    const sql = 'INSERT INTO users (name, email, password, lawyer_id, role, register_type) VALUES (?, ?, ?, ?, ?, ?)';
+    db.run(sql, [name, email, hashedPassword, lawyer_id, 'Member', 'Active'], (err) => {
       if (err) { return res.redirect('/register'); }
       res.redirect('/login');
     });
@@ -143,20 +142,33 @@ app.get('/dashboard', (req, res) => {
     if (req.session.user.role === 'Administrator') {
         return res.redirect('/admin/dashboard');
     }
-    let totals = { cpd: 0, ethics: 0 };
-    if (res.locals.plan) {
-        const activitiesSql = `SELECT hours, is_ethics FROM activities WHERE plan_id = ? AND status = 'Complete'`;
-        db.all(activitiesSql, [res.locals.plan.id], (err, activities) => {
-            if (err) { return res.status(500).send("Error getting activities."); }
-            activities.forEach(activity => {
-                totals.cpd += parseFloat(activity.hours) || 0;
-                if (activity.is_ethics) { totals.ethics += parseFloat(activity.hours) || 0; }
+    const userType = req.session.user.register_type || 'Active';
+    const cpdKey = (userType === 'Limited Licensee') ? 'cpd_hours_limited' : 'cpd_hours_active';
+    const ethicsKey = (userType === 'Limited Licensee') ? 'ethics_hours_limited' : 'ethics_hours_active';
+    const settingsSql = `SELECT key, value FROM settings WHERE key IN (?, ?)`;
+    
+    db.all(settingsSql, [cpdKey, ethicsKey], (err, settings) => {
+        if (err) { return res.status(500).send("Error fetching settings."); }
+        const requiredHours = {
+            cpd: parseFloat(settings.find(s => s.key === cpdKey)?.value) || 12,
+            ethics: parseFloat(settings.find(s => s.key === ethicsKey)?.value) || 2
+        };
+
+        let totals = { cpd: 0, ethics: 0 };
+        if (res.locals.plan) {
+            const activitiesSql = `SELECT hours, is_ethics FROM activities WHERE plan_id = ? AND status = 'Complete'`;
+            db.all(activitiesSql, [res.locals.plan.id], (err, activities) => {
+                if (err) { return res.status(500).send("Error getting activities."); }
+                activities.forEach(activity => {
+                    totals.cpd += parseFloat(activity.hours) || 0;
+                    if (activity.is_ethics) { totals.ethics += parseFloat(activity.hours) || 0; }
+                });
+                res.render('dashboard', { title: 'Dashboard', totals, requiredHours });
             });
-            res.render('dashboard', { title: 'Dashboard', totals });
-        });
-    } else {
-         res.render('dashboard', { title: 'Dashboard', totals });
-    }
+        } else {
+            res.render('dashboard', { title: 'Dashboard', totals, requiredHours });
+        }
+    });
 });
 app.post('/plan/reset', (req, res) => {
     const findPlanSql = `SELECT id FROM plans WHERE user_id = ? AND year = ?`;
@@ -212,16 +224,16 @@ app.post('/activities/:id/uncomplete', (req, res) => {
 
 // --- ADMIN ROUTES ---
 app.get('/admin/dashboard', checkAdmin, (req, res) => {
-    // CORRECTED: Ensure register_type is always an array
+    let registerTypeFilter = req.query.register_type || [];
+    if (typeof registerTypeFilter === 'string') {
+        registerTypeFilter = [registerTypeFilter];
+    }
     const filters = {
         name: req.query.name || '',
         year: req.query.year || '',
         status: req.query.status || '',
-        register_type: req.query.register_type || []
+        register_type: registerTypeFilter
     };
-    if (typeof filters.register_type === 'string') {
-        filters.register_type = [filters.register_type];
-    }
     const sortBy = req.query.sortBy || 'year';
     const sortOrder = req.query.sortOrder === 'asc' ? 'ASC' : 'DESC';
     const allowedSortColumns = ['userName', 'lawyer_id', 'register_type', 'year', 'status', 'completed_cpd', 'completed_ethics'];
@@ -249,16 +261,27 @@ app.get('/admin/dashboard', checkAdmin, (req, res) => {
     if (conditions.length > 0) { sql += " WHERE " + conditions.join(" AND "); }
     sql += ` GROUP BY p.id ORDER BY ${safeSortBy} ${sortOrder}`;
     
-    db.all(sql, params, (err, plans) => {
-        if (err) { return res.status(500).send("Could not retrieve plans."); }
+    const settingsSql = `SELECT key, value FROM settings`;
+    Promise.all([
+        new Promise((resolve, reject) => db.all(settingsSql, (err, rows) => err ? reject(err) : resolve(rows))),
+        new Promise((resolve, reject) => db.all(sql, params, (err, rows) => err ? reject(err) : resolve(rows)))
+    ]).then(([settings, plans]) => {
+        const requirements = {
+            cpd_active: parseFloat(settings.find(s => s.key === 'cpd_hours_active')?.value) || 12,
+            ethics_active: parseFloat(settings.find(s => s.key === 'ethics_hours_active')?.value) || 2,
+            cpd_limited: parseFloat(settings.find(s => s.key === 'cpd_hours_limited')?.value) || 6,
+            ethics_limited: parseFloat(settings.find(s => s.key === 'ethics_hours_limited')?.value) || 1
+        };
         plans.forEach(plan => {
             const isLimited = plan.register_type === 'Limited Licensee';
-            plan.isComplete = (plan.completed_cpd >= (isLimited ? 6 : 12) && plan.completed_ethics >= (isLimited ? 1 : 2));
+            const req_cpd = isLimited ? requirements.cpd_limited : requirements.cpd_active;
+            const req_ethics = isLimited ? requirements.ethics_limited : requirements.ethics_active;
+            plan.isComplete = (plan.completed_cpd >= req_cpd && plan.completed_ethics >= req_ethics);
         });
         const sortLinks = {};
         allowedSortColumns.forEach(col => {
             const order = (sortBy === col && sortOrder === 'ASC') ? 'desc' : 'asc';
-            const query = new URLSearchParams({ ...req.query, sortBy: col, sortOrder: order }).toString();
+            const query = new URLSearchParams({ ...req.query, sortBy: col, sortOrder: order });
             sortLinks[col] = `?${query}`;
         });
         const sortIcons = {};
@@ -266,6 +289,9 @@ app.get('/admin/dashboard', checkAdmin, (req, res) => {
             sortIcons[col] = (sortBy === col) ? (sortOrder === 'ASC' ? '▲' : '▼') : '';
         });
         res.render('admin/dashboard', { title: 'Admin Dashboard', plans, filters, sortLinks, sortIcons });
+    }).catch(err => {
+        console.error("Error fetching data for admin dashboard:", err.message);
+        return res.status(500).send("Could not retrieve plans.");
     });
 });
 app.get('/admin/plan/:id', checkAdmin, (req, res) => {
@@ -406,7 +432,142 @@ app.post('/admin/import-users', checkAdmin, upload.single('csvFile'), async (req
 });
 
 // --- WIZARD ROUTES ---
-// ... (All wizard routes from previous step are correct)
+app.get('/wizard/continue', getOrCreatePlan, (req, res) => {
+    const activitiesSql = `SELECT * FROM activities WHERE plan_id = ?`;
+    db.all(activitiesSql, [req.session.planData.id], (err, activities) => {
+        if(err) { return res.redirect('/dashboard'); }
+        const furthestStep = calculateFurthestStep(req.session.planData, activities);
+        const destinationStep = Math.max(3, furthestStep);
+        res.redirect(`/wizard/${destinationStep}`);
+    });
+});
+app.get('/wizard/:step', getOrCreatePlan, (req, res) => {
+    const step = parseInt(req.params.step, 10);
+    const planId = req.session.planData.id;
+    const activitiesSql = `SELECT * FROM activities WHERE plan_id = ?`;
+    db.all(activitiesSql, [planId], (err, activities) => {
+        if (err) { return res.redirect('/dashboard'); }
+        const furthestStep = calculateFurthestStep(req.session.planData, activities);
+        if (step > furthestStep && step !== 1) { return res.redirect(`/wizard/${furthestStep}`); }
+
+        const renderOptions = { title: 'CPD Self-Assessment', currentStep: step, furthestStep: furthestStep, competencies: req.session.planData.competencies };
+        
+        if (step === 3) {
+            const domainSql = `SELECT d.name as domain_name, c.name as competency_name FROM domains d LEFT JOIN competencies c ON d.id = c.domain_id ORDER BY d.id, c.id`;
+            db.all(domainSql, [], (err, rows) => {
+                if (err) { return res.redirect('/dashboard'); }
+                renderOptions.competencies = rows.reduce((acc, row) => {
+                    let domain = acc.find(d => d.domain === row.domain_name);
+                    if (!domain) { domain = { domain: row.domain_name, competencies: [] }; acc.push(domain); }
+                    if (row.competency_name) { domain.competencies.push(row.competency_name); }
+                    return acc;
+                }, []);
+                renderOptions.selectedCompetencies = req.session.planData.competencies;
+                renderOptions.saved = req.query.saved || null;
+                res.render(`wizard-step3`, renderOptions);
+            });
+        } else if (step === 6) {
+            db.all(`SELECT * FROM learning_activities ORDER BY description`, [], (err, availableActivities) => {
+                if(err) { return res.redirect('/dashboard'); }
+                renderOptions.activities = activities.reduce((acc, act) => {
+                    if (!acc[act.competency_name]) { acc[act.competency_name] = []; }
+                    acc[act.competency_name].push(act);
+                    return acc;
+                }, {});
+                renderOptions.availableActivities = availableActivities;
+                res.render('wizard-step6', renderOptions);
+            });
+        } else if (step === 7) {
+            let totals = { cpd: 0, ethics: 0 };
+            activities.forEach(act => {
+                totals.cpd += parseFloat(act.hours) || 0;
+                if(act.is_ethics) { totals.ethics += parseFloat(act.hours) || 0; }
+            });
+            renderOptions.totals = totals;
+            renderOptions.activities = activities.reduce((acc, act) => {
+                if (!acc[act.competency_name]) { acc[act.competency_name] = []; }
+                acc[act.competency_name].push(act);
+                return acc;
+            }, {});
+            res.render('wizard-step7', renderOptions);
+        } else {
+             renderOptions.selectedCompetencies = req.session.planData.competencies;
+             res.render(`wizard-step${step}`, renderOptions);
+        }
+    });
+});
+app.post('/wizard/submit', getOrCreatePlan, (req, res) => {
+    const sql = `UPDATE plans SET status = 'Submitted' WHERE id = ?`;
+    db.run(sql, [req.session.planData.id], function(err) {
+        if (err) { return res.redirect(`/wizard/7`); }
+        req.session.planData = null;
+        res.redirect('/dashboard');
+    });
+});
+app.get('/wizard/3/select/:competencyName', getOrCreatePlan, (req, res) => {
+    const competencyName = decodeURIComponent(req.params.competencyName);
+    if (!req.session.planData.competencies.some(c => c.name === competencyName)) {
+        req.session.planData.competencies.push({ name: competencyName, type: 'standard', rating: null });
+        savePlanProgress(req.session.planData, () => res.redirect('/wizard/3?saved=true'));
+    } else { res.redirect('/wizard/3'); }
+});
+app.get('/wizard/3/remove/:competencyName', getOrCreatePlan, (req, res) => {
+    const competencyName = decodeURIComponent(req.params.competencyName);
+    req.session.planData.competencies = req.session.planData.competencies.filter(c => c.name !== competencyName);
+    savePlanProgress(req.session.planData, () => res.redirect('/wizard/3?saved=true'));
+});
+app.post('/wizard/3/add-custom', getOrCreatePlan, (req, res) => {
+    const customName = req.body.custom_competency;
+    if (customName && !req.session.planData.competencies.some(c => c.name === customName)) {
+        req.session.planData.competencies.push({ name: customName, type: 'custom', rating: null });
+        savePlanProgress(req.session.planData, () => res.redirect('/wizard/3?saved=true'));
+    } else { res.redirect('/wizard/3'); }
+});
+app.post('/wizard/4', getOrCreatePlan, (req, res) => {
+    const { competencyName, rating } = req.body;
+    const competencyToUpdate = req.session.planData.competencies.find(c => c.name === competencyName);
+    if (competencyToUpdate) {
+        competencyToUpdate.rating = rating;
+        savePlanProgress(req.session.planData, (err) => {
+            if (err) { return res.status(500).json({ success: false, message: 'Database error.' }); }
+            res.json({ success: true, message: 'Rating saved.' });
+        });
+    } else { res.status(404).json({ success: false, message: 'Competency not found.' }); }
+});
+app.get('/wizard/5/move-up/:competencyName', getOrCreatePlan, (req, res) => {
+    const competencyName = decodeURIComponent(req.params.competencyName);
+    const competencies = req.session.planData.competencies;
+    const index = competencies.findIndex(c => c.name === competencyName);
+    if (index > 0) {
+        [competencies[index], competencies[index - 1]] = [competencies[index - 1], competencies[index]];
+        savePlanProgress(req.session.planData, () => res.redirect('/wizard/5'));
+    } else { res.redirect('/wizard/5'); }
+});
+app.get('/wizard/5/move-down/:competencyName', getOrCreatePlan, (req, res) => {
+    const competencyName = decodeURIComponent(req.params.competencyName);
+    const competencies = req.session.planData.competencies;
+    const index = competencies.findIndex(c => c.name === competencyName);
+    if (index < competencies.length - 1) {
+        [competencies[index], competencies[index + 1]] = [competencies[index + 1], competencies[index]];
+        savePlanProgress(req.session.planData, () => res.redirect('/wizard/5'));
+    } else { res.redirect('/wizard/5'); }
+});
+app.post('/wizard/6/add-activity', getOrCreatePlan, (req, res) => {
+    const { competency_name, activity_title, activity_type, hours, notes, user_role_in_activity } = req.body;
+    const is_ethics = req.body.is_ethics ? 1 : 0;
+    const sql = `INSERT INTO activities (plan_id, competency_name, activity_title, activity_type, user_role_in_activity, hours, is_ethics, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+    db.run(sql, [req.session.planData.id, competency_name, activity_title, activity_type, user_role_in_activity, hours, is_ethics, notes], function(err) {
+        if (err) { return res.status(500).json({ success: false, message: err.message }); }
+        res.json({ success: true, newActivity: { id: this.lastID, is_ethics, ...req.body } });
+    });
+});
+app.post('/wizard/6/remove-activity/:id', getOrCreatePlan, (req, res) => {
+    const sql = `DELETE FROM activities WHERE id = ? AND plan_id = ?`;
+    db.run(sql, [req.params.id, req.session.planData.id], function(err) {
+        if (err) { return res.status(500).json({ success: false }); }
+        res.json({ success: true });
+    });
+});
 
 // --- START SERVER ---
 app.listen(PORT, () => {

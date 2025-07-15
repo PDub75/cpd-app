@@ -29,11 +29,14 @@
                 <div class="competency-activities">
                     <h3><%= comp.name %></h3>
 
-                    <ul class="activity-list" id="activity-list-<%= comp.name.replace(/\s+/g, '') %>">
+                    <ul class="activity-list" id="activity-list-<%= comp.name.replace(/\s+/g, '-') %>">
                         <% if (activities[comp.name] && activities[comp.name].length > 0) { %>
                             <% activities[comp.name].forEach(act => { %>
                                 <li data-activity-id="<%= act.id %>">
-                                    <span><%- act.activity_description %> (<%- act.hours %> hrs) <%- act.is_ethics ? '<strong>[Ethics]</strong>' : '' %></span>
+                                    <div class="activity-details">
+                                        <span class="activity-description"><strong><%- act.activity_title %></strong> (<%- act.activity_type %>, <%= act.hours %> hrs) <%- act.is_ethics ? '<strong>[Ethics]</strong>' : '' %></span>
+                                        <span class="activity-notes">Role: <%= act.user_role_in_activity %></span>
+                                    </div>
                                     <button class="remove-activity-btn" type="button">&times;</button>
                                 </li>
                             <% }) %>
@@ -42,34 +45,47 @@
 
                     <form class="activity-form">
                         <input type="hidden" name="competency_name" value="<%= comp.name %>">
+                        
+                        <div class="form-group">
+                            <label>Activity Title/Description</label>
+                            <input type="text" name="activity_title" required>
+                        </div>
+                        
                         <div class="form-row">
                             <div class="form-group">
-                                <label>Learning Activity</label>
-                                <select name="activity_description" required>
-                                    <option value="Attend a seminar or course">Attend a seminar or course</option>
-                                    <option value="Review a written resource">Review a written resource</option>
-                                    <option value="Listen to a podcast">Listen to a podcast</option>
-                                    <option value="Be a mentor or mentee">Be a mentor or mentee</option>
-                                    <option value="Teach a conference, course or seminar">Teach a conference, course or seminar</option>
-                                    <option value="Volunteer">Volunteer</option>
-                                    <option value="Other">Other</option>
+                                <label>Type of Activity</label>
+                                <select name="activity_type" required>
+                                    <% availableActivities.forEach(act => { %>
+                                        <option value="<%= act.description %>"><%= act.description %></option>
+                                    <% }) %>
                                 </select>
                             </div>
+                            <div class="form-group">
+                                <label>Provider (Optional)</label>
+                                <input type="text" name="provider">
+                            </div>
                         </div>
+
+                        <div class="form-group form-group-radio">
+                            <label>What is your role at this activity?</label>
+                            <div class="radio-options">
+                                <label><input type="radio" name="user_role_in_activity" value="Attendee" checked> Attendee</label>
+                                <label><input type="radio" name="user_role_in_activity" value="Presenter/Instructor"> Presenter/Instructor</label>
+                                <label><input type="radio" name="user_role_in_activity" value="Panel/Faculty Member"> Panel/Faculty Member</label>
+                            </div>
+                        </div>
+
                         <div class="form-row">
                             <div class="form-group form-group-small">
-                                <label for="hours_<%= comp.name.replace(/\s+/g, '') %>">Hours</label>
-                                <input type="number" name="hours" id="hours_<%= comp.name.replace(/\s+/g, '') %>" step="0.25" min="0" required>
+                                <label>Hours</label>
+                                <input type="number" name="hours" step="0.25" min="0" required>
                             </div>
                             <div class="form-group form-group-check">
-                                <input type="checkbox" name="is_ethics" id="is_ethics_<%= comp.name.replace(/\s+/g, '') %>">
-                                <label for="is_ethics_<%= comp.name.replace(/\s+/g, '') %>">Ethics Activity?</label>
+                                <input type="checkbox" name="is_ethics">
+                                <label>Ethics Activity?</label>
                             </div>
                         </div>
-                        <div class="form-group">
-                            <label for="notes_<%= comp.name.replace(/\s+/g, '') %>">Notes (Private)</label>
-                            <textarea name="notes" id="notes_<%= comp.name.replace(/\s+/g, '') %>" rows="2"></textarea>
-                        </div>
+                        
                         <button type="submit" class="btn btn-small">Add Activity</button>
                     </form>
                 </div>
@@ -84,7 +100,6 @@
 </main>
 
 <script>
-    // This script block is now complete and self-contained
     document.querySelector('.wizard-content').addEventListener('submit', function(event) {
         if (event.target.classList.contains('activity-form')) {
             event.preventDefault();
@@ -101,12 +116,17 @@
             .then(res => res.json())
             .then(result => {
                 if (result.success) {
-                    const listId = `activity-list-${data.competency_name.replace(/\s+/g, '')}`;
+                    const listId = `activity-list-${data.competency_name.replace(/\s+/g, '-')}`;
                     const list = document.getElementById(listId);
                     const newLi = document.createElement('li');
                     newLi.dataset.activityId = result.newActivity.id;
                     const ethicsTag = result.newActivity.is_ethics ? '<strong>[Ethics]</strong>' : '';
-                    newLi.innerHTML = `<span>${result.newActivity.activity_description} (${result.newActivity.hours} hrs) ${ethicsTag}</span> <button class="remove-activity-btn" type="button">&times;</button>`;
+                    newLi.innerHTML = `
+                        <div class="activity-details">
+                            <span class="activity-description"><strong>${result.newActivity.activity_title}</strong> (${result.newActivity.activity_type}, ${result.newActivity.hours} hrs) ${ethicsTag}</span>
+                            <span class="activity-notes">Role: ${result.newActivity.user_role_in_activity}</span>
+                        </div>
+                        <button class="remove-activity-btn" type="button">&times;</button>`;
                     list.appendChild(newLi);
                     form.reset();
                     showNotification('✓ Activity Added.');

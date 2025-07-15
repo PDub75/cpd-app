@@ -17,6 +17,7 @@ async function seedDatabase() {
 
     if (availableCompetencies.length < 5 || availableActivities.length < 5) {
         console.error("Not enough competencies or activities in the database. Please run seed.js and seed-activities.js first.");
+        db.close();
         return;
     }
 
@@ -90,12 +91,9 @@ function insertUser(userData, hashedPassword) {
 
 function createPlanForUser(user, availableCompetencies) {
     const status = Math.random() > 0.3 ? 'Submitted' : 'Draft';
-    // Select 2 to 4 real competencies for the plan
     const selectedCompetencies = faker.helpers.arrayElements(availableCompetencies, { min: 2, max: 4 })
         .map(c => ({ name: c.name, type: 'standard', rating: faker.helpers.arrayElement(['Discover', 'Attempt', 'Do']) }));
-
     const competenciesJson = JSON.stringify(selectedCompetencies);
-
     const sql = `INSERT INTO plans (user_id, year, status, competencies) VALUES (?, ?, ?, ?)`;
     return new Promise((resolve, reject) => {
         db.run(sql, [user.id, new Date().getFullYear(), status, competenciesJson], function(err) {
@@ -106,26 +104,24 @@ function createPlanForUser(user, availableCompetencies) {
 }
 
 async function addActivitiesToPlan(plan, registerType, availableActivities) {
-    const isComplete = Math.random() > 0.4; // 60% chance of having completed hours
+    const isComplete = Math.random() > 0.4;
     const requiredHours = registerType === 'Limited Licensee' ? 6 : 12;
     const requiredEthics = registerType === 'Limited Licensee' ? 1 : 2;
-    
     let hoursSoFar = 0;
     let ethicsSoFar = 0;
     
-    // For each competency in the plan, add 1-2 activities
     for (const competency of plan.competencies) {
         const activityCount = Math.floor(Math.random() * 2) + 1;
         for (let i = 0; i < activityCount; i++) {
-            const activity = faker.helpers.arrayElement(availableActivities).description;
+            const activityType = faker.helpers.arrayElement(availableActivities).description;
+            const activityTitle = `${faker.commerce.productName()} ${activityType}`; // Create a fake title
             let hours = parseFloat((Math.random() * 2 + 0.5).toFixed(2));
             let is_ethics = 0;
 
-            // Logic to try and meet the requirements if isComplete is true
             if (isComplete) {
                 if (ethicsSoFar < requiredEthics) {
                     is_ethics = 1;
-                    hours = requiredEthics / 2; // Split ethics hours over a couple activities
+                    hours = requiredEthics / 2;
                 }
                 if (hoursSoFar < requiredHours) {
                     hours = requiredHours / plan.competencies.length / activityCount;
@@ -139,12 +135,12 @@ async function addActivitiesToPlan(plan, registerType, availableActivities) {
             const status = isComplete ? 'Complete' : 'Not Started';
             const completion_date = isComplete ? faker.date.past({ years: 1, refDate: new Date() }) : null;
 
-            const sql = `INSERT INTO activities (plan_id, competency_name, activity_description, hours, is_ethics, status, completion_date) VALUES (?, ?, ?, ?, ?, ?, ?)`;
-            await runQuery(sql, [plan.id, competency.name, activity, hours, is_ethics, status, completion_date]);
+            // CORRECTED: This now uses activity_title and activity_type
+            const sql = `INSERT INTO activities (plan_id, competency_name, activity_title, activity_type, hours, is_ethics, status, completion_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+            await runQuery(sql, [plan.id, competency.name, activityTitle, activityType, hours, is_ethics, status, completion_date]);
         }
     }
 }
-
 
 // Run the seeder
 db.serialize(() => {
