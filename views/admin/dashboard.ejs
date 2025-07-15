@@ -3,7 +3,7 @@
 
 <main class="content">
     <h1>Admin Dashboard: All Member Plans</h1>
-    <p>This table displays all CPD plans currently in the system. Use the filters below to refine the list.</p>
+    <p>This table displays all CPD plans currently in the system. Use the filters below to refine the list, and click on column headers to sort.</p>
 
     <div class="filter-container">
         <form action="/admin/dashboard" method="GET" class="filter-form">
@@ -23,6 +23,14 @@
                     <option value="Submitted" <%= filters.status === 'Submitted' ? 'selected' : '' %>>Submitted</option>
                 </select>
             </div>
+            <div class="form-group">
+                <label for="registerType">Register Type</label>
+                <select id="registerType" name="register_type" multiple size="3">
+                    <option value="Active" <%= filters.register_type.includes('Active') ? 'selected' : '' %>>Active</option>
+                    <option value="Active Pro-Bono" <%= filters.register_type.includes('Active Pro-Bono') ? 'selected' : '' %>>Active Pro-Bono</option>
+                    <option value="Limited Licensee" <%= filters.register_type.includes('Limited Licensee') ? 'selected' : '' %>>Limited Licensee</option>
+                </select>
+            </div>
             <div class="filter-actions">
                 <button type="submit" class="btn btn-small">Filter</button>
                 <a href="/admin/dashboard" class="btn btn-small btn-secondary">Clear</a>
@@ -35,12 +43,13 @@
         <table class="admin-table">
             <thead>
                 <tr>
-                    <th>Member Name</th>
-                    <th>Lawyer ID</th>
-                    <th>Plan Year</th>
-                    <th>Status</th>
-                    <th>CPD Hours</th>
-                    <th>Ethics Hours</th>
+                    <th><a href="<%= sortLinks.userName %>">Member Name <%= sortIcons.userName %></a></th>
+                    <th><a href="<%= sortLinks.lawyer_id %>">Lawyer ID <%= sortIcons.lawyer_id %></a></th>
+                    <th><a href="<%= sortLinks.register_type %>">Register Type <%= sortIcons.register_type %></a></th>
+                    <th><a href="<%= sortLinks.year %>">Plan Year <%= sortIcons.year %></a></th>
+                    <th><a href="<%= sortLinks.status %>">Status <%= sortIcons.status %></a></th>
+                    <th><a href="<%= sortLinks.completed_cpd %>">CPD Hours <%= sortIcons.completed_cpd %></a></th>
+                    <th><a href="<%= sortLinks.completed_ethics %>">Ethics Hours <%= sortIcons.completed_ethics %></a></th>
                     <th>Complete</th>
                     <th>Actions</th>
                 </tr>
@@ -51,6 +60,7 @@
                         <tr>
                             <td><%= plan.userName %></td>
                             <td><%= plan.lawyer_id || 'N/A' %></td>
+                            <td><%= plan.register_type %></td>
                             <td><%= plan.year %></td>
                             <td><span class="status-badge status-<%= plan.status.toLowerCase() %>"><%= plan.status %></span></td>
                             <td><%= (plan.completed_cpd || 0).toFixed(2) %></td>
@@ -69,7 +79,7 @@
                     <% }) %>
                 <% } else { %>
                     <tr>
-                        <td colspan="8">No plans match the current filters.</td>
+                        <td colspan="9">No plans match the current filters.</td>
                     </tr>
                 <% } %>
             </tbody>
