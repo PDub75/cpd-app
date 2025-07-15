@@ -28,6 +28,7 @@ input[type="text"], input[type="email"], input[type="password"], input[type="num
   font-size: 1em;
 }
 input[type="number"] {
+  appearance: textfield;
   -moz-appearance: textfield;
 }
 input::-webkit-outer-spin-button,
